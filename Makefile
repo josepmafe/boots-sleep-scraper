@@ -6,6 +6,10 @@ venv:
 deps: 
 	venv\Scripts\activate & pip install -r requirements.txt
 
+# activate virtual environment and install development dependencies
+deps-dev: 
+	venv\Scripts\activate & pip install -r requirements-dev.txt
+
 # create the necessary directories for the code to run
 dir:
 	python -c "import os; os.makedirs('./data/output', exist_ok = True)"
@@ -39,6 +43,9 @@ debug:
 # run tests
 testing:
 	venv\Scripts\activate & pytest test/
+
+run-dev:
+	venv\Scripts\activate & jupyter notebook
 
 # remove virtual environment folder, as a minimum sanitazing task
 tidy:
