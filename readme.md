@@ -1,16 +1,17 @@
 # `Boots - Sleep` scraper
 
-This repo contains the Boots - Sleep scraper code, which we use to extract data from the [Boots - Sleep]((https://www.boots.com/health-pharmacy/medicines-treatments/sleep)) page. The top-level repo structure is the following:
+This repo contains the Boots - Sleep scraper code, which we use to extract data from the [Boots - Sleep](https://www.boots.com/health-pharmacy/medicines-treatments/sleep) page. The top-level repo structure is the following:
 ```
 .
-├── dev                 # Project development code (Jupyter notebooks)
-├── src                 # Project source code
-├── test                # Project tests               
+├── dev                     # Development code (Jupyter notebooks)
+├── src                     # Source code
+├── test                    # Tests               
 ├── .gitignore 
-├── Makefile            # `make` commands
-├── pytest.ini          # `pytest` configuration file
+├── Makefile                # `make` commands
+├── pytest.ini              # `pytest` configuration file
 ├── readme.md                  
-└── requirements.txt    # Project Python dependencies
+├── requirements.txt        # Python dependencies
+└── requirements-dev.txt    # Pyhton development dependencies
 ```
 > [!WARNING]
 > We have designed this project to run in a Windows OS, so if you use any other, you might have to modify the following instructions.
@@ -56,14 +57,14 @@ make all
 which takes care of all steps in the project pipeline, i.e., setup, default execution and cleanup
 
 > [!TIP]
-> We recommend you to avoid this very-high-level command and keep reading.
+> To have a deeper understanding of the project, we recommend you to avoid this very-high-level command and keep reading.
 
 ### Step by step
 Before running the Python code for the first time, one needs to setup the project by running
 ```bash
 make setup
 ```
-This command creates a Python virtual environment, installs the dependencies and makes the necessary folders in the project root folder.
+This command creates a Python virtual environment, installs the dependencies and makes the necessary folders in the project root directory.
 
 > [!TIP]
 > Before running the data extraction code, and after the setup, you can test it executing
@@ -108,10 +109,22 @@ make clean
 > make help
 > ```
 
-To run the project with custom arguments, we recommend you to mimic the `run` make command. for instance, to run without GUI, paginating over all results forcing the removal of temporary files even if the process fails, you would do
+To run the project with custom arguments, we recommend you to mimic the `run` make command. For instance, to run without GUI, paginating over all results forcing the removal of temporary files even if the process fails, you would do
 ```bash
     venv\Scripts\activate & python src -vv --headless --paginate --force-remove
 ```
+
+### Development
+
+For the first steps of the project development, we used Jupyter notebooks (which are located in the `./dev` folder). To run them, or to further develop the project, you can execute
+```bash
+make dev-deps
+```
+to install de development requirements, and then
+```
+make dev
+```
+to launch the jupyter notebook backend.
 
 ## Flaws and alternatives
 
