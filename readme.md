@@ -12,24 +12,22 @@ This repo contains the Boots - Sleep scraper code, which we use to extract data 
 ├── readme.md                  
 └── requirements.txt    # Project Python dependencies
 ```
-> [!IMPORTANT]
-> We have designed this project to run in a Windows OS, so if you use any other, you might have to adjust the following instructions.
+> [!WARNING]
+> We have designed this project to run in a Windows OS, so if you use any other, you might have to modify the following instructions.
 
-<details>
-<summary>
-<h2>Pre-requisites</h3>
+## Pre-requisites
 
-> [!IMPORTANT]
-> If it's your first time using this project, consider checking this section before executing it.
+> [!NOTE]
+> If it's your first time using this project, consider checking this section before executing it. Otherwise, you can jump to the next one.
 </summary>
 
-<details>
+<details open>
 <summary><h3>Install <code>Chrome</code></h4></summary>
 
 The project uses the `Chrome` webdriver from `selenium` to extract data, so you need to install the Google Chrome browser. You can download the installer [here](https://support.google.com/chrome/answer/95346?hl=en).
 </details>
 
-<details>
+<details open>
 <summary><h3>Install <code>Python</code></h4></summary>
 
 As we use the `Python` API from `selenium`, we also need to install `Python` to run the project code. You can download the installer from the official [website](https://www.python.org/downloads/).
@@ -40,7 +38,7 @@ As we use the `Python` API from `selenium`, we also need to install `Python` to 
 
 The instructions provided to run this project use `make`, so we recommend you to also install it. To do so in Windows, you need to [install choco](https://chocolatey.org/install), and use `choco` to [install make](https://community.chocolatey.org/packages/make).
 
-Then, test `make` running
+Then, you can test `make` running
 ```
 make --version
 ```
@@ -55,7 +53,10 @@ The easiest way to run the project is to execute
 ```bash
 make all
 ```
-However, we recommend you to avoid this very-high-level command and keep reading.
+which takes care of all steps in the project pipeline, i.e., setup, default execution and cleanup
+
+> [!TIP]
+> We recommend you to avoid this very-high-level command and keep reading.
 
 ### Step by step
 Before running the Python code for the first time, one needs to setup the project by running
@@ -64,17 +65,13 @@ make setup
 ```
 This command creates a Python virtual environment, installs the dependencies and makes the necessary folders in the project root folder.
 
-After completing the setup, you can check the code help as
-```bash
-make help
-```
+> [!TIP]
+> Before running the data extraction code, and after the setup, you can test it executing
+> ```bash
+> make testing
+> ```
 
-Before running the actual code, you can test it executing
-```bash
-make testing
-```
-
-If the tests pass, you can extract the target data by running either
+Once the setup is complete, you can extract the target data by running either
 ```bash
 # run with default options
 make run
@@ -90,7 +87,8 @@ make paginate
 make debug
 ```
 
-All run commands write a file with the results in `./data/output` unless told otherwise. Moreover, note all run commands can be resumed if anything goes wrong, as the source code stores temporary files, so the process does not have start from scratch.
+> [!NOTE]
+> All run commands write a file with the results in `./data/output` unless told otherwise. Moreover, note all run commands can be resumed if anything goes wrong, as the source code stores temporary files, so the process does not have start from scratch.
 
 Finally, you can do a cleanup by running
 ```bash
@@ -100,6 +98,19 @@ make tidy
 # remove virtual environment folder and any other
 # file generated during the process
 make clean
+```
+
+### Custom execution
+
+> [!TIP]
+> You can check the code help as
+> ```bash
+> make help
+> ```
+
+To run the project with custom arguments, we recommend you to mimic the `run` make command. for instance, to run without GUI, paginating over all results forcing the removal of temporary files even if the process fails, you would do
+```bash
+    venv\Scripts\activate & python src -vv --headless --paginate --force-remove
 ```
 
 ## Flaws and alternatives
