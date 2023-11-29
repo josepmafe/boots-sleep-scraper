@@ -100,7 +100,7 @@ Before running the Python code for the first time, one needs to setup the projec
 ```bash
 make setup
 ```
-This command creates a Python virtual environment, installs the dependencies, makes the necessary folders in the project root directory, and pulls the `selenium` Docker image from [Docker Hub](https://hub.docker.com/.)
+This command creates a Python virtual environment, installs the dependencies, makes the necessary folders in the project root directory, and pulls the `selenium/standalone-chrome` Docker image from [Docker Hub](https://hub.docker.com/.)
 
 > [!TIP]
 > At this point, you can test the data extraction code executing one of
@@ -174,6 +174,7 @@ In subsequent iterations of the project, we could consider the following improve
 - Remove rarely used `make` commands as the project progresses.
 - Dig deeper into the `selenium` Docker image to enable GUI execution; that would allow us to remove Chrome as a pre-requisite and make the code browser-agnostic during the development stage.
 - Make the app logging more robust by writing its logs in a file.
+- Add CI/CD pipelines, e.g., GHA, to automate tests, code linting, etc.
 
 ## Flaws and (discarded) alternatives
 
@@ -182,6 +183,7 @@ Despite being in the project core, `selenium` has several limitations that are w
 - Scripts using `selenium` tend to require frequent updates and maintenance, as changes in the web application can break the existing logic.
 - `selenium` is deeply coupled with the underlying browser and might suffer compatibility issues. However, the webdriver manager and the Docker image mitigate this issue. 
 - External factors such as network latency or inconsistent element locators can yield intermittent failures that are hard to diagnose.
+- 
 
 For the above reasons, `selenium` was not our first option. Initially, we used  `requests` and `bs4`, but they are intended for static pages and do not render the JavaScript parts of the website.
 
