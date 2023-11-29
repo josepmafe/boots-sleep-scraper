@@ -1,3 +1,5 @@
+import pytest
+
 import re
 import json
 from _scraper import BootsPageScraper
@@ -6,15 +8,24 @@ from _scraper import BootsPageScraper
 EXPECTED_PAGE_TITLE = 'Sleep Aid Tablets | Sleep Products | Boots'
 
 PAGING_SIZE_PATTERN = r'paging\.size=(\d+)'
-EXPECTED_PRODUCT_COUNT = 96
+EXPECTED_PRODUCT_COUNT = 96 # this is just a fail-safe in case the regex match does not work
 
+@pytest.fixture(scope = 'class', autouse = True)
+def headless(pytestconfig):
+    """
+    Sets the `headless` value for TestBootsPageScraper,
+    which comes from user input
+    """
+    TestBootsPageScraper.headless = pytestconfig.getoption('headless')
 
 class TestBootsPageScraper:
     """Class that contains the tests for the `BootsPageScraper`"""
-
     @classmethod
     def setup_class(cls):
-        cls.scraper = BootsPageScraper(auto_accept_cookies = False)
+        cls.scraper = BootsPageScraper(
+            headless = cls.headless,
+            auto_accept_cookies = False
+        )
         cls.driver = cls.scraper.driver
 
     def test_page_title(self):
