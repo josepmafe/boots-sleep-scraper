@@ -3,7 +3,7 @@ import logging
 DEFAULT_LOG_FORMAT = '[%(asctime)s] {%(filename)s} %(levelname)s: %(message)s'
 LOGGERS_TO_SILENCE = {
     'requests': logging.WARNING,
-    'urllib3': logging.WARNING,
+    'urllib3': logging.ERROR,
     'selenium': logging.WARNING,
 }
 
@@ -20,15 +20,14 @@ def set_logger_config(
     Parameters
     ----------
     log_level: int, optional
-        level of the main root logger
+        Level of the main root logger
     log_format: str
-        logs string format
+        Logs string format
     date_format: str
-        logs date format
+        Logs date format
     loggers_to_adjust: dict[str], optional
-        loggers whose verbosity is adjusted
+        Loggers whose verbosity is adjusted
     """
-    # TODO: use a more robust configuration to also save logs in a file
     logging.basicConfig(
         format = log_format, 
         datefmt = date_format, 
