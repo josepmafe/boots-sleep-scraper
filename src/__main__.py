@@ -12,17 +12,17 @@ from _scraper import BootsPageScraper
     help = 'Target URL for the Boots - Sleep page.'
 )
 @click.option(
-    '--webdriver-path', 
-    default = None, 
-    type = str, 
-    help = 'Path to the webdriver executable.'
-)
-@click.option(
     '--headless', 
     is_flag = True, 
     default = False, 
     show_default = True, 
-    help = 'Whether to run with GUI.'
+    help = 'Whether to run with GUI, and within the selenium docker container.'
+)
+@click.option(
+    '--webdriver-path', 
+    default = None, 
+    type = str, 
+    help = 'Path to the webdriver executable.'
 )
 @click.option(
     '--output-path',
@@ -59,9 +59,9 @@ from _scraper import BootsPageScraper
     help = 'Whether to paginate over all results in the Boots - Sleep page.'
 )
 def main(
-    url, 
-    webdriver_path, 
+    url,
     headless,
+    webdriver_path,
     output_path,
     output_file,
     force_remove,

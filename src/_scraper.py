@@ -6,7 +6,7 @@ import json
 import re
 from pandas import to_numeric
 
-from selenium.webdriver import Chrome, ChromeOptions, ChromeService
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -19,6 +19,8 @@ from _decorator import retry
 
 
 RETRY = retry(exceptions = (NoSuchElementException, TimeoutException), backoff = 2)
+
+DOCKER_EXECUTOR_URL = 'http://127.0.0.1:4444'
 
 URL = 'https://www.boots.com/health-pharmacy/medicines-treatments/sleep'
 
@@ -54,31 +56,63 @@ class ScrapingException(Exception):
 
 class ChromeDriverWrapper:
     """Convenience wrapper around the selenium `ChromeDriver` web driver"""
-    def __init__(self, driver_path: str = None, headless: bool = False):
+    def __init__(self, headless: bool = False, driver_path: str = None):
         """
         Parameters
         ----------
+        headless: bool, optional
+            Whether to run headless, i.e., without GUI,
+            and within a running docker container.
         driver_path: str, optional
             Path to the webdriver executable
-        headless: bool, optional
-            Whether to run headless, i.e., without GUI.
         """
-        self.driver = self._init_driver(driver_path, headless)
+        self._remote_executor_url = DOCKER_EXECUTOR_URL
+        self.driver = self._init_driver(headless, driver_path)
     
-    def _init_driver(self, driver_path, headless):
+    def _wait_for_remote_executor(self):
+        """
+        Helper method that waits until the selenium Docker backend is ready.
+        Note the Docker backend must be ran beforehand.
+        """
+        import requests
+        import time
+
+        # we wait at most 10s for the remote command executor
+        for _ in range(5):
+            try:
+                resp = requests.head(self._remote_executor_url)
+                resp.raise_for_status()
+            except requests.ConnectionError:
+                logger.debug('Waiting for the command executor to be up and ready.')
+                time.sleep(2)
+            else:
+                break
+        else:
+            raise requests.ConnectionError(
+                '`selenium` Docker command executor is not running. '
+                'Did you ran `make run` or `make docker-run`?'
+            )
+
+    def _init_driver(self, headless, driver_path):
         """Instantiate the Chrome WebDriver with the given options"""
-        service = ChromeService(executable_path = driver_path)
-
-        options = ChromeOptions()
-        
-        # silence DevTools log msg
-        options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        
         if headless:
-            options.add_argument('--headless')
-            options.add_argument('--log-level=3')
+            options = webdriver.ChromeOptions()
+            options.add_argument('--ignore-ssl-errors=yes')
+            options.add_argument('--ignore-certificate-errors')
 
-        return Chrome(service = service, options = options)
+            self._wait_for_remote_executor()
+            return webdriver.Remote(
+                command_executor = self._remote_executor_url, 
+                options = options
+            )
+        else:
+            service = webdriver.ChromeService(executable_path = driver_path)
+
+            options = webdriver.ChromeOptions()
+            # silence DevTools log msg
+            options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+            return webdriver.Chrome(service = service, options = options)
     
     def _wait_until(self, condition: Callable, *, timeout: int | float = 10):
         """
@@ -88,13 +122,13 @@ class ChromeDriverWrapper:
         Parameters
         ----------
         condition: function
-            a function to be by the WebDriver. either
+            A function to be by the WebDriver. either
                 - a lambda function, e.g.,
                         self._wait_until(lambda x: x.find_elements(by, value))
                 - or one of selenium.webdriver.support.expected_conditions, e.g.,
                         self._wait_until(expected_conditions.element_to_be_clickable((by, value))
-        timeout: int or float
-            time to wait before raising TimeoutException, in seconds
+        timeout: int or float, optional
+            Time to wait before raising TimeoutException, in seconds
         
         Returns
         -------
@@ -119,12 +153,12 @@ class ChromeDriverWrapper:
         Parameters
         ----------
         by: str
-            locate the element expected to be clickable by the attribute `by`
+            Locate the element expected to be clickable by the attribute `by`
         value: str
-            locate the element expected to be clickable when the attribute `by`
+            Locate the element expected to be clickable when the attribute `by`
             value is `value`
         timeout: int or float, optional
-            time to wait before raising TimeoutException, in seconds
+            Time to wait before raising TimeoutException, in seconds
         
         Returns
         -------
@@ -138,8 +172,23 @@ class ChromeDriverWrapper:
         return self._wait_until(condition = EC.element_to_be_clickable((by, value)), timeout = timeout)
 
 class BootsPageScraper(ChromeDriverWrapper):
-    def __init__(self, *, url: str = None, driver_path: str = None, headless: bool = False, auto_accept_cookies = True):
-        super().__init__(driver_path, headless)
+    """Main class. It uses `selenium` webdrivers to extracts the target data from the Boots - Sleep page"""
+    def __init__(self, *, url: str = None, headless: bool = False, driver_path: str = None, auto_accept_cookies = True):
+        """
+        Parameters
+        ----------
+        url: str, optional
+            The URL from where we extract the data
+        headless: bool, optional
+            Whether to run headless, i.e., without GUI,
+            and within a running docker container
+        driver_path: str, optional
+            Path to the webdriver executable
+        auto_accept_cookies: bool, optional
+            Whether the webdriver should automatically accept the 
+            recommended cookies when the page loads
+        """
+        super().__init__(headless, driver_path)
 
         # load the given URL, or the default one
         url = url or URL
@@ -168,7 +217,7 @@ class BootsPageScraper(ChromeDriverWrapper):
         """Helper method to auto-accept the recommended cookies"""
         self._wait_until_clickable(By.ID, ACCEPT_RECOMMENDED_COOKIES_BUTTON_ID).click()
 
-    def accept_cookies(self):
+    def accept_cookies(self) -> None:
         """Helper method to auto-accept cookies"""
         self._accept_cookies()
         self._accept_recommended_cookies()
@@ -182,10 +231,13 @@ class BootsPageScraper(ChromeDriverWrapper):
         self._wait_until_clickable(By.CLASS_NAME, product_elements_class_name)
         return self.driver.find_elements(By.CLASS_NAME, product_elements_class_name)
 
-    def find_products(self, product_elements_class_name: str = PRODUCT_ELEMENT_CLASS_NAME):
+    def find_products(
+        self, 
+        product_elements_class_name: str = PRODUCT_ELEMENT_CLASS_NAME
+    ) -> list[Product]:
         """
         Finds the products in the initial URL and stores them in `Product` instances,
-        for later information retrieval.
+        for later information retrieval
 
         Parameters
         ----------
@@ -264,7 +316,7 @@ class BootsPageScraper(ChromeDriverWrapper):
 
         return product.as_dict()
     
-    def do_cleanup(self, force = False):
+    def do_cleanup(self, force = False) -> None:
         """Helper method to remove the temporary files"""
         n_parsed_files = len(os.listdir(self.tmp_dir))
 
@@ -280,7 +332,7 @@ class BootsPageScraper(ChromeDriverWrapper):
         else:
             logger.warning(
                 f'Skipping cleanup, as {n_parsed_files} of {self._n_products} products have been scraped. '
-                f'to force it, set `force = True`'
+                f'to force it, set `force = True`.'
             )
 
     @retry(exceptions = ScrapingException, n_tries = 2)
@@ -292,7 +344,7 @@ class BootsPageScraper(ChromeDriverWrapper):
         output_file: str = None,
         auto_remove: bool = True,
         force_remove: bool = False
-    ):
+    ) -> None:
         """
         Extracts the target data from the given products and stores it as a JSON file.
 
@@ -303,20 +355,28 @@ class BootsPageScraper(ChromeDriverWrapper):
         Parameters
         ----------
         products: list[Product]
-            list of products to retrieve data from, as returned by `self.find_products` 
+            List of products to retrieve data from, as returned by `self.find_products` 
         output_path: str, optional
-            path where the output file is written
+            Path where the output file is written
         output_file: str, optional
-            name of the output file
+            Name of the output file
         auto_remove: bool, optional
-            whether to automatically do clean up when all products have been parsed
+            Whether to automatically do clean up when all products have been parsed
         force_remove: bool = False
-            whether to automatically do clean up when the process finishes, even if
+            Whether to automatically do clean up when the process finishes, even if
             there have been any errors when parsing products (not recommended)
         """
         output_path = output_path or OUTPUT_PATH
         output_file = output_file or OUTPUT_FILE
 
+        current_files = os.listdir(self.tmp_dir)
+        if current_files:
+            logger.debug(
+                f'Resuming extraction process. Found {len(current_files)} files '
+                f'in {self.tmp_dir!r} folder.'
+            )
+
+        # parse products
         failed_products = {}
         for idx, product in enumerate(products):
             idx += 1
@@ -379,12 +439,17 @@ class BootsPageScraper(ChromeDriverWrapper):
                 json.dump(failed_products, f_out)
             
             if force_remove:
+                logger.warning(
+                    'Removing temporary files even if the extraction process failed '
+                    'for some products (due to `force_remove = True`).')
                 self.do_cleanup(force = True)
 
-            raise ScrapingException(
+            error_msg = (
                 f'Scrapping process failed for {len(failed_products)} products. '
                 f'See error log {log_fp!r} for more info'
             )
+            logger.error(error_msg)
+            raise ScrapingException(error_msg)
         
         elif auto_remove:
             self.do_cleanup()
